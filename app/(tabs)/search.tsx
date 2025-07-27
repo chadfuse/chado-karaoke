@@ -25,13 +25,13 @@ export default function SearchScreen() {
           <View style={styles.songItem}>
             <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
             <View style={{ flex: 1 }}>
-              <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-              <ThemedText>{item.artist}{item.genre ? ` • ${item.genre}` : ''}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.songTitle}>{item.title}</ThemedText>
+              <ThemedText style={styles.songSubtitle}>{item.artist}{item.genre ? ` • ${item.genre}` : ''}</ThemedText>
             </View>
             <TouchableOpacity
               style={[styles.playButton]}
               onPress={() => router.push({
-                pathname: '/SongPlayerScreen',
+                pathname: '/(tabs)/player',
                 params: {
                   songId: item.id,
                   title: item.title,
@@ -42,14 +42,14 @@ export default function SearchScreen() {
                 }
               })}
             >
-              <ThemedText type="defaultSemiBold" style={{ color: '#34a853' }}>Play</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.playButtonText}>Play</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.reserveButton, reservedSongs.includes(item.id) && styles.reserved]}
               disabled={reservedSongs.includes(item.id)}
               onPress={() => setReservedSongs([...reservedSongs, item.id])}
             >
-              <ThemedText type="defaultSemiBold" style={{ color: reservedSongs.includes(item.id) ? '#aaa' : '#007AFF' }}>
+              <ThemedText type="defaultSemiBold" style={[styles.reserveButtonText, reservedSongs.includes(item.id) && { color: '#888888' }]}>
                 {reservedSongs.includes(item.id) ? 'Reserved' : 'Reserve'}
               </ThemedText>
             </TouchableOpacity>
@@ -64,22 +64,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#1a1a1a', // Dark background
   },
   input: {
     height: 48,
-    borderColor: '#ccc',
+    borderColor: '#333333', // Dark border
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#2a2a2a', // Dark input background
+    color: '#ffffff', // White text
   },
   songItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#333333', // Dark border
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#2a2a2a', // Dark card background
+    marginBottom: 8,
+    borderRadius: 8,
   },
   thumbnail: {
     width: 64,
@@ -91,17 +96,29 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#007AFF', // Blue button
     marginLeft: 8,
   },
   reserved: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#444444', // Dark gray for reserved
   },
   playButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#e0f7e0',
+    backgroundColor: '#34a853', // Green button
     marginLeft: 8,
+  },
+  songTitle: {
+    color: '#ffffff', // White text
+  },
+  songSubtitle: {
+    color: '#cccccc', // Light gray text
+  },
+  playButtonText: {
+    color: '#ffffff', // White text
+  },
+  reserveButtonText: {
+    color: '#ffffff', // White text
   },
 }); 

@@ -22,7 +22,7 @@ export default function CategoriesScreen() {
               // onPress={() => router.push({ pathname: '/genre', params: { genre: item } })}
             >
               {song && <Image source={{ uri: song.thumbnail }} style={styles.thumbnail} />}
-              <ThemedText type="defaultSemiBold">{item}</ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.genreText}>{item}</ThemedText>
             </TouchableOpacity>
           );
         }}
@@ -35,22 +35,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#1a1a1a', // Dark background
   },
   title: {
     marginBottom: 16,
+    color: '#ffffff', // White text
   },
   genreButton: {
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#2a2a2a', // Dark card background
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333333', // Dark border
   },
   thumbnail: {
     width: 48,
     height: 27,
     borderRadius: 4,
     marginRight: 12,
+  },
+  genreText: {
+    color: '#ffffff', // White text
   },
 }); 

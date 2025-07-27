@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Player Test</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .video-container {
+            margin: 20px 0;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+        }
+        .info {
+            padding: 10px;
+            background: #333;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Player Test</h1>
+        
+        <div class="info">
+            <h3>Test Video 1: Shallow - Lady Gaga, Bradley Cooper (Karaoke)</h3>
+            <p>Video ID: smu-0V7E7wI</p>
+        </div>
+        <div class="video-container">
+            <iframe 
+                src="https://www.youtube.com/embed/smu-0V7E7wI?autoplay=0&enablejsapi=1&playsinline=1&controls=1&rel=0&modestbranding=1&fs=1&cc_load_policy=0&iv_load_policy=3&autohide=1&start=0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                title="Karaoke Video Player Test 1">
+            </iframe>
+        </div>
+
+        <div class="info">
+            <h3>Test Video 2: Bohemian Rhapsody - Queen (HD Karaoke)</h3>
+            <p>Video ID: j1DfXFCHLDI</p>
+        </div>
+        <div class="video-container">
+            <iframe 
+                src="https://www.youtube.com/embed/j1DfXFCHLDI?autoplay=0&enablejsapi=1&playsinline=1&controls=1&rel=0&modestbranding=1&fs=1&cc_load_policy=0&iv_load_policy=3&autohide=1&start=0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                title="Karaoke Video Player Test 2">
+            </iframe>
+        </div>
+
+        <div class="info">
+            <p><strong>Note:</strong> If you see "Video unavailable" messages, it might be due to:</p>
+            <ul>
+                <li>Domain restrictions (videos may only work on specific domains)</li>
+                <li>Geographic restrictions</li>
+                <li>Copyright restrictions</li>
+                <li>Network connectivity issues</li>
+            </ul>
+            <p>Try opening the URLs directly:</p>
+            <ul>
+                <li><a href="https://www.youtube.com/watch?v=smu-0V7E7wI" target="_blank">Video 1</a></li>
+                <li><a href="https://www.youtube.com/watch?v=j1DfXFCHLDI" target="_blank">Video 2</a></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

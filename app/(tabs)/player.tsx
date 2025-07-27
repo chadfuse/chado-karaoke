@@ -4,6 +4,7 @@ import { useSearch } from '@/hooks/useSearch';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { memo, useCallback, useLayoutEffect, useState } from 'react';
 import { Dimensions, Image, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 // Memoized VideoPlayer to prevent re-renders when unrelated state changes
@@ -137,7 +138,6 @@ const VideoSection = memo(
     });
     
     // Remove origin parameter for better compatibility
-    // Remove origin parameter for better compatibility
     const url = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
     
     return (
@@ -152,10 +152,11 @@ const VideoSection = memo(
 
 console.log('Mock songs available:', mockSongs.length);
 
-export default function SongPlayerScreen() {
+export default function PlayerScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [reservedSongs, setReservedSongs] = useState<any[]>([]);
@@ -172,11 +173,11 @@ export default function SongPlayerScreen() {
           youtubeId: params.youtubeId,
           thumbnail: params.thumbnail,
         }
-      : mockSongs.find((s) => s.id === params.songId)
+      : mockSongs.find((s) => s.id === params.songId) || mockSongs[0] // Default to first song if none found
   );
 
   // Debug logging
-  console.log('SongPlayerScreen debug:', {
+  console.log('PlayerScreen debug:', {
     showSearch,
     query,
     resultsLength: results.length,
@@ -274,56 +275,70 @@ export default function SongPlayerScreen() {
   ), [handleSearchToggle]);
 
   useLayoutEffect(() => {
+    console.log('Disabling navigation header for custom header');
     navigation.setOptions({
-      headerTitle,
-      headerRight,
+      headerShown: false, // Disable navigation header since we have custom header
     });
-  }, [navigation, headerTitle, headerRight]);
-
-
+  }, [navigation]);
 
   if (!currentSong) {
-    return <ThemedText style={{ color: '#fff' }}>Song not found.</ThemedText>;
+    return (
+      <View style={styles.container}>
+        <ThemedText style={{ color: '#fff' }}>No song selected. Go to Home to choose a song.</ThemedText>
+      </View>
+    );
   }
 
   const videoUrl = `https://www.youtube.com/embed/${currentSong.youtubeId}?autoplay=1`;
   const { width, height: screenHeight } = Dimensions.get('window');
-  // Make video fill all available space
+  // Calculate video height accounting for custom header and tab bar
+  const customHeaderHeight = Platform.OS === 'ios' ? 85 : 60; // Custom header height
+  const tabBarHeight = 60; // Approximate tab bar height
   const videoWidth = width; // Full width
-  const videoHeight = screenHeight - 80; // Leave space only for header
-
-  // ...existing code above
-
+  const videoHeight = screenHeight - customHeaderHeight - tabBarHeight;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#1a1a1a' }}>
+    <View style={styles.container}>
+      {/* Custom Header - always visible */}
+      <View style={[styles.customHeader, { paddingTop: insets.top + 10 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingHorizontal: 16 }}>
+          {reservedSongs.length > 0 ? (
+            <TouchableOpacity 
+              style={{ flex: 1, alignItems: 'center' }}
+              onPress={playNextReserved}
+            >
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }} numberOfLines={1}>
+                ▶ Next: {reservedSongs[0].title}
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 10, opacity: 0.8 }}>
+                {reservedSongs.length} reserved • Tap to play
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginRight: 8 }}>
+                Now Playing
+              </Text>
+              <TouchableOpacity onPress={handlePlayPause}>
+                <Text style={{ color: '#fff', fontSize: 18 }}>{isPlaying ? '⏸️' : '▶️'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.searchIcon}
+            onPress={handleSearchToggle}
+          >
+            <Text style={styles.searchIconText}>🔍</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Search Overlay */}
       {showSearch && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 300,
-          backgroundColor: 'transparent',
-          zIndex: 1000,
-          padding: 16,
-          elevation: 5,
-        }}>
+        <View style={styles.searchOverlay}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
-              style={{
-                flex: 1,
-                height: 40,
-                backgroundColor: '#f8f8f8',
-                borderRadius: 20,
-                paddingHorizontal: 16,
-                fontSize: 16,
-                color: '#000',
-                borderWidth: 1,
-                borderColor: '#ddd',
-                marginRight: 8,
-              }}
+              style={styles.searchInput}
               placeholder="Search karaoke songs..."
               placeholderTextColor="#666"
               value={searchQuery}
@@ -331,14 +346,7 @@ export default function SongPlayerScreen() {
               autoFocus
             />
             <TouchableOpacity
-              style={{
-                width: 40,
-                height: 40,
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: '#f0f0f0',
-                borderRadius: 20,
-              }}
+              style={styles.closeButton}
               onPress={handleSearchToggle}
             >
               <Text style={{ fontSize: 18, color: '#666' }}>✕</Text>
@@ -357,14 +365,7 @@ export default function SongPlayerScreen() {
                 .map((song, index) => (
                 <View
                   key={index}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: 8,
-                    marginBottom: 4,
-                    backgroundColor: '#f9f9f9',
-                    borderRadius: 8,
-                  }}
+                  style={styles.searchResultItem}
                 >
                   <TouchableOpacity
                     style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
@@ -372,28 +373,17 @@ export default function SongPlayerScreen() {
                   >
                     <Image
                       source={{ uri: String(song.thumbnail) }}
-                      style={{
-                        width: 30,
-                        height: 22,
-                        borderRadius: 3,
-                        marginRight: 8,
-                      }}
+                      style={styles.resultThumbnail}
                     />
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#000', flex: 1 }} numberOfLines={1}>
+                    <Text style={styles.resultText} numberOfLines={1}>
                       {song.title} {song.youtubeId === currentSong?.youtubeId ? '(Now Playing)' : ''}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={{
-                      backgroundColor: '#007AFF',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 15,
-                      marginLeft: 8,
-                    }}
+                    style={styles.reserveButton}
                     onPress={() => handleReserveSong(song)}
                   >
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>
+                    <Text style={styles.reserveButtonText}>
                       Reserve
                     </Text>
                   </TouchableOpacity>
@@ -419,7 +409,14 @@ export default function SongPlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#1a1a1a', // Dark background
+  },
+  customHeader: {
+    backgroundColor: '#000',
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    zIndex: 100, // Ensure it's above other elements
   },
   searchIcon: {
     padding: 10,
@@ -429,66 +426,67 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#fff',
   },
-  searchContainer: {
+  searchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    backgroundColor: 'transparent',
+    zIndex: 1000,
     padding: 16,
-    backgroundColor: '#f8f8f8',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    elevation: 5,
   },
   searchInput: {
-    height: 40,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#fff',
-    fontSize: 16,
-  },
-  loadingIndicator: {
-    marginTop: 8,
-  },
-  playerContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  songInfo: {
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  searchResults: {
     flex: 1,
+    height: 40,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 20,
     paddingHorizontal: 16,
+    fontSize: 16,
+    color: '#000',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginRight: 8,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 20,
   },
   searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#fafafa',
-    marginBottom: 8,
+    padding: 8,
+    marginBottom: 4,
+    backgroundColor: '#2a2a2a',
     borderRadius: 8,
   },
-  thumbnail: {
-    width: 60,
-    height: 34,
-    borderRadius: 4,
-    marginRight: 12,
+  resultThumbnail: {
+    width: 30,
+    height: 22,
+    borderRadius: 3,
+    marginRight: 8,
   },
-  songDetails: {
+  resultText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#fff',
     flex: 1,
   },
-  searchButton: {
+  reserveButton: {
     backgroundColor: '#007AFF',
-    padding: 16,
-    margin: 20,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginLeft: 8,
   },
-  searchButtonText: {
+  reserveButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
-}); 
+});
