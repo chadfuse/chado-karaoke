@@ -1,75 +1,77 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { mockSongs } from '@/constants/mockSongs';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [reservedSongs, setReservedSongs] = useState<string[]>([]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <ThemedText type="title" style={styles.title}>Trending Karaoke Songs</ThemedText>
+      <FlatList
+        data={mockSongs}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.songItem}
+            onPress={() => router.push({ pathname: '/SongPlayerScreen', params: { songId: item.id } })}
+          >
+            <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
+            <View style={{ flex: 1 }}>
+              <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
+              <ThemedText>{item.artist} • {item.genre}</ThemedText>
+            </View>
+            <TouchableOpacity
+              style={[styles.reserveButton, reservedSongs.includes(item.id) && styles.reserved]}
+              disabled={reservedSongs.includes(item.id)}
+              onPress={() => setReservedSongs([...reservedSongs, item.id])}
+            >
+              <ThemedText type="defaultSemiBold" style={{ color: reservedSongs.includes(item.id) ? '#aaa' : '#007AFF' }}>
+                {reservedSongs.includes(item.id) ? 'Reserved' : 'Reserve'}
+              </ThemedText>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  title: {
+    marginBottom: 16,
+  },
+  songItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
     marginBottom: 8,
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  thumbnail: {
+    width: 64,
+    height: 36,
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  reserveButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#e0e0e0',
+    marginLeft: 8,
+  },
+  reserved: {
+    backgroundColor: '#f5f5f5',
   },
 });
