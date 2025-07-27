@@ -1,13 +1,28 @@
 import { ThemedText } from '@/components/ThemedText';
+import { useReservedSongs } from '@/contexts/ReservedSongsContext';
 import { useSearch } from '@/hooks/useSearch';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function SearchScreen() {
   const { query, setQuery, results, loading, data } = useSearch();
-  const [reservedSongs, setReservedSongs] = useState<string[]>([]);
+  const { addReservedSong, isReserved } = useReservedSongs();
   const router = useRouter();
+
+  const handleReserveSong = (song: any) => {
+    const reservedSong = {
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      genre: song.genre || '',
+      youtubeId: song.youtubeId,
+      thumbnail: song.thumbnail,
+      channelTitle: song.channelTitle,
+    };
+    addReservedSong(reservedSong);
+  };
 
   return (
     <View style={styles.container}>
@@ -29,7 +44,7 @@ export default function SearchScreen() {
               <ThemedText style={styles.songSubtitle}>{item.artist}{item.genre ? ` • ${item.genre}` : ''}</ThemedText>
             </View>
             <TouchableOpacity
-              style={[styles.playButton]}
+              style={styles.playButtonContainer}
               onPress={() => router.push({
                 pathname: '/(tabs)/player',
                 params: {
@@ -42,16 +57,30 @@ export default function SearchScreen() {
                 }
               })}
             >
-              <ThemedText type="defaultSemiBold" style={styles.playButtonText}>Play</ThemedText>
+              <LinearGradient
+                colors={['#02AAB0', '#00CDAC', '#02AAB0']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.playButton}
+              >
+                <ThemedText type="defaultSemiBold" style={styles.playButtonText}>Play</ThemedText>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.reserveButton, reservedSongs.includes(item.id) && styles.reserved]}
-              disabled={reservedSongs.includes(item.id)}
-              onPress={() => setReservedSongs([...reservedSongs, item.id])}
+              style={styles.reserveButtonContainer}
+              disabled={isReserved(item.id)}
+              onPress={() => handleReserveSong(item)}
             >
-              <ThemedText type="defaultSemiBold" style={[styles.reserveButtonText, reservedSongs.includes(item.id) && { color: '#888888' }]}>
-                {reservedSongs.includes(item.id) ? 'Reserved' : 'Reserve'}
-              </ThemedText>
+              <LinearGradient
+                colors={isReserved(item.id) ? ['#444444', '#444444'] : ['#4776E6', '#8E54E9', '#4776E6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.reserveButton}
+              >
+                <ThemedText type="defaultSemiBold" style={[styles.reserveButtonText, isReserved(item.id) && { color: '#888888' }]}>
+                  {isReserved(item.id) ? 'Reserved' : 'Reserve'}
+                </ThemedText>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -67,11 +96,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a', // Dark background
   },
   input: {
-    height: 48,
+    height: 100,
     borderColor: '#333333', // Dark border
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     marginBottom: 16,
     backgroundColor: '#2a2a2a', // Dark input background
     color: '#ffffff', // White text
@@ -92,22 +121,26 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 12,
   },
-  reserveButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    backgroundColor: '#007AFF', // Blue button
+  playButtonContainer: {
     marginLeft: 8,
-  },
-  reserved: {
-    backgroundColor: '#444444', // Dark gray for reserved
   },
   playButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 6,
-    backgroundColor: '#34a853', // Green button
+    alignItems: 'center',
+  },
+  reserveButtonContainer: {
     marginLeft: 8,
+  },
+  reserveButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  reserved: {
+    backgroundColor: '#444444', // Dark gray for reserved
   },
   songTitle: {
     color: '#ffffff', // White text
@@ -117,8 +150,10 @@ const styles = StyleSheet.create({
   },
   playButtonText: {
     color: '#ffffff', // White text
+    textTransform: 'uppercase',
   },
   reserveButtonText: {
     color: '#ffffff', // White text
+    textTransform: 'uppercase',
   },
 }); 

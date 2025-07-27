@@ -3,6 +3,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
+import { PlayerTabIcon } from '@/components/PlayerTabIcon';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
@@ -60,7 +61,7 @@ export default function TabLayout() {
         name="player"
         options={{
           title: 'Player',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="play.circle.fill" color={color} />,
+          tabBarIcon: ({ color }) => <PlayerTabIcon color={color} />,
           headerShown: false, // Use custom header in component instead
         }}
       />

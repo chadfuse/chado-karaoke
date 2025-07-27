@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { mockSongs } from '@/constants/mockSongs';
+import { useReservedSongs } from '@/contexts/ReservedSongsContext';
 import { useSearch } from '@/hooks/useSearch';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { memo, useCallback, useLayoutEffect, useState } from 'react';
@@ -159,7 +160,7 @@ export default function PlayerScreen() {
   const insets = useSafeAreaInsets();
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [reservedSongs, setReservedSongs] = useState<any[]>([]);
+  const { reservedSongs, addReservedSong, playNextReserved, isReserved } = useReservedSongs();
   const [isPlaying, setIsPlaying] = useState(true); // Track play/pause state
   const [videoKey, setVideoKey] = useState(0); // Key to force video remount
   const { query, setQuery, results, loading, data } = useSearch();
@@ -216,19 +217,27 @@ export default function PlayerScreen() {
 
   const handleReserveSong = useCallback((song: any) => {
     console.log('Reserved song:', song.title);
-    setReservedSongs(prev => [...prev, song]);
+    const reservedSong = {
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      genre: song.genre || '',
+      youtubeId: song.youtubeId,
+      thumbnail: song.thumbnail,
+      channelTitle: song.channelTitle,
+    };
+    addReservedSong(reservedSong);
     setSearchQuery('');
     setShowSearch(false);
-  }, []);
+  }, [addReservedSong]);
 
-  const playNextReserved = useCallback(() => {
-    if (reservedSongs.length > 0) {
-      const nextSong = reservedSongs[0];
+  const handlePlayNextReserved = useCallback(() => {
+    const nextSong = playNextReserved();
+    if (nextSong) {
       setCurrentSong(nextSong);
-      setReservedSongs(prev => prev.slice(1));
       setIsPlaying(true); // Start playing when switching to next song
     }
-  }, [reservedSongs]);
+  }, [playNextReserved]);
 
   const handlePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -241,7 +250,7 @@ export default function PlayerScreen() {
       {reservedSongs.length > 0 ? (
         <TouchableOpacity 
           style={{ flex: 1, alignItems: 'center' }}
-          onPress={playNextReserved}
+          onPress={handlePlayNextReserved}
         >
           <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }} numberOfLines={1}>
             ▶ Next: {reservedSongs[0].title}
@@ -261,7 +270,7 @@ export default function PlayerScreen() {
         </View>
       )}
     </View>
-  ), [reservedSongs, playNextReserved, handlePlayPause, isPlaying]);
+  ), [reservedSongs, handlePlayNextReserved, handlePlayPause, isPlaying]);
 
   const headerRight = useCallback(() => (
     <TouchableOpacity
@@ -305,7 +314,7 @@ export default function PlayerScreen() {
           {reservedSongs.length > 0 ? (
             <TouchableOpacity 
               style={{ flex: 1, alignItems: 'center' }}
-              onPress={playNextReserved}
+              onPress={handlePlayNextReserved}
             >
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }} numberOfLines={1}>
                 ▶ Next: {reservedSongs[0].title}
@@ -359,7 +368,7 @@ export default function PlayerScreen() {
                 .filter(song => 
                   // Allow current song to be reserved, but filter out already reserved songs
                   song.youtubeId === currentSong?.youtubeId || 
-                  !reservedSongs.some(reserved => reserved.youtubeId === song.youtubeId)
+                  !isReserved(song.youtubeId)
                 )
                 .slice(0, 5)
                 .map((song, index) => (

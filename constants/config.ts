@@ -21,4 +21,4 @@ export const GENRES = [
   'EDM',
 ];
 
-export const TRENDING_KARAOKE_QUERY = 'karaoke instrumental'; 
+export const TRENDING_KARAOKE_QUERY = 'popular karaoke songs 2025 instrumental'; 

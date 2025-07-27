@@ -1,5 +1,6 @@
 // YouTube API service for karaoke songs
 import { YOUTUBE_API_BASE_URL, YOUTUBE_API_KEY } from '@/constants/config';
+import { ApiCacheManager } from './apiCacheManager';
 
 console.log('YouTube Service Debug - API Key loaded:', YOUTUBE_API_KEY?.substring(0, 10) + '...');
 
@@ -45,7 +46,25 @@ export class YouTubeService {
       return [];
     }
 
+    // Check cache first
+    const cacheKey = ApiCacheManager.getSearchCacheKey(query, maxResults);
+    const cached = ApiCacheManager.getCached<YouTubeSong[]>(cacheKey);
+    if (cached) {
+      console.log('✅ Using cached search results for:', query);
+      return cached;
+    }
+
+    // Check if we can make API request
+    const requestCheck = ApiCacheManager.canMakeRequest();
+    if (!requestCheck.allowed) {
+      console.warn('⚠️ API request blocked:', requestCheck.reason);
+      return []; // Return empty array to trigger fallback to mock data
+    }
+
     try {
+      // Record the API request
+      ApiCacheManager.recordRequest();
+      
       // Add "karaoke" to the search query for better results
       const searchQuery = `${query} karaoke`;
       
@@ -77,19 +96,8 @@ export class YouTubeService {
       const data = await response.json();
       console.log('✅ YouTube API Success:', { itemCount: data.items?.length || 0 });
       
-      // Get additional video details for duration
-      const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
-      const detailsUrl = `${this.baseUrl}/videos?` +
-        `part=contentDetails,snippet&` +
-        `id=${videoIds}&` +
-        `key=${this.apiKey}`;
-
-      const detailsResponse = await fetch(detailsUrl);
-      const detailsData = await detailsResponse.json();
-
-      // Combine search results with video details
-      const songs: YouTubeSong[] = data.items.map((item: any, index: number) => {
-        const details = detailsData.items[index];
+      // Process results (simplified - skip video details call to save quota)
+      const songs: YouTubeSong[] = data.items.map((item: any) => {
         const title = item.snippet.title;
         
         // Try to extract artist from title (common patterns)
@@ -109,14 +117,16 @@ export class YouTubeService {
           id: item.id.videoId,
           title: this.cleanTitle(title),
           artist: this.cleanArtist(artist),
-          genre: 'Karaoke', // Default genre, could be enhanced with more API calls
+          genre: 'Karaoke',
           youtubeId: item.id.videoId,
           thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default.url,
-          duration: details?.contentDetails?.duration,
           channelTitle: item.snippet.channelTitle
         };
       });
 
+      // Cache the results
+      ApiCacheManager.setCache(cacheKey, songs);
+      
       return songs;
     } catch (error) {
       console.error('YouTube API search failed:', error);
@@ -131,27 +141,36 @@ export class YouTubeService {
       return [];
     }
 
-    try {
-      // Search for popular karaoke songs
-      const trendingQueries = [
-        'popular karaoke songs 2024',
-        'best karaoke hits',
-        'top karaoke songs'
-      ];
+    // Check cache first - trending data can be cached longer
+    const cacheKey = ApiCacheManager.getTrendingCacheKey();
+    const cached = ApiCacheManager.getCached<YouTubeSong[]>(cacheKey);
+    if (cached) {
+      console.log('✅ Using cached trending karaoke results');
+      return cached;
+    }
 
-      const allResults: YouTubeSong[] = [];
+    // Check if we can make API request
+    const requestCheck = ApiCacheManager.canMakeRequest();
+    if (!requestCheck.allowed) {
+      console.warn('⚠️ Trending API request blocked:', requestCheck.reason);
+      return [];
+    }
+
+    try {
+      // Use a single optimized query instead of multiple queries
+      const trendingQuery = 'popular karaoke songs 2024';
+      const results = await this.searchKaraokeSongs(trendingQuery, maxResults);
       
-      for (const query of trendingQueries) {
-        const results = await this.searchKaraokeSongs(query, Math.ceil(maxResults / trendingQueries.length));
-        allResults.push(...results);
+      if (results.length > 0) {
+        // Cache trending results for longer duration
+        ApiCacheManager.setCache(
+          cacheKey, 
+          results, 
+          ApiCacheManager.getTrendingCacheDuration()
+        );
       }
 
-      // Remove duplicates based on video ID
-      const uniqueSongs = allResults.filter((song, index, arr) => 
-        arr.findIndex(s => s.youtubeId === song.youtubeId) === index
-      );
-
-      return uniqueSongs.slice(0, maxResults);
+      return results;
     } catch (error) {
       console.error('Failed to get trending karaoke:', error);
       return [];
@@ -176,5 +195,30 @@ export class YouTubeService {
       .replace(/official/gi, '')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  // Get API usage statistics
+  static getApiUsage() {
+    return ApiCacheManager.getUsageStats();
+  }
+
+  // Clear expired cache entries
+  static clearCache() {
+    ApiCacheManager.clearExpiredCache();
+  }
+
+  // Force clear all cache (for debugging)
+  static clearAllCache() {
+    const keys = Object.keys(localStorage);
+    let cleared = 0;
+    
+    keys.forEach(key => {
+      if (key.startsWith('youtube_cache_')) {
+        localStorage.removeItem(key);
+        cleared++;
+      }
+    });
+    
+    console.log('🧹 Force cleared', cleared, 'cache entries');
   }
 }

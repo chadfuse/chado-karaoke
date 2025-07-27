@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'KaraVibe',
-    slug: 'KaraVibe',
+    name: 'Chado',
+    slug: 'chado',
     version: '1.0.0',
     orientation: 'landscape',
     extra: {
