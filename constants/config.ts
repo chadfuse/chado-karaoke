@@ -1,7 +1,12 @@
-import Constants from 'expo-constants';
+export const YOUTUBE_API_KEY = process.env.EXPO_PUBLIC_YOUTUBE_API_KEY || 'YOUR_YOUTUBE_API_KEY_HERE';
+export const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
-export const YOUTUBE_API_KEY = Constants.expoConfig?.extra?.YOUTUBE_API_KEY || 'YOUR_YOUTUBE_API_KEY_HERE';
-export const YOUTUBE_API_BASE_URL = Constants.expoConfig?.extra?.YOUTUBE_API_BASE_URL || 'https://www.googleapis.com/youtube/v3';
+// Debug logging
+console.log('Config Debug:', {
+  envVar: process.env.EXPO_PUBLIC_YOUTUBE_API_KEY ? 'SET' : 'NOT_SET',
+  finalKey: YOUTUBE_API_KEY ? 'CONFIGURED' : 'NOT_CONFIGURED',
+  isConfigured: YOUTUBE_API_KEY !== 'YOUR_YOUTUBE_API_KEY_HERE'
+});
 
 export const GENRES = [
   'Pop',
