@@ -1,3 +1,5 @@
+import { storage } from '../src/utils/storage';
+
 // Cache manager for YouTube API responses
 interface CacheItem<T> {
   data: T;
@@ -22,14 +24,14 @@ export class ApiCacheManager {
   // Get cached data if valid
   static getCached<T>(key: string): T | null {
     try {
-      const cached = localStorage.getItem(this.CACHE_PREFIX + key);
+      const cached = storage.getItem(this.CACHE_PREFIX + key);
       if (!cached) return null;
       
       const item: CacheItem<T> = JSON.parse(cached);
       
       if (Date.now() > item.expiresAt) {
         // Cache expired, remove it
-        localStorage.removeItem(this.CACHE_PREFIX + key);
+        storage.removeItem(this.CACHE_PREFIX + key);
         return null;
       }
       
@@ -51,7 +53,7 @@ export class ApiCacheManager {
         expiresAt
       };
       
-      localStorage.setItem(this.CACHE_PREFIX + key, JSON.stringify(item));
+      storage.setItem(this.CACHE_PREFIX + key, JSON.stringify(item));
       console.log('💾 Cached data for:', key, 'expires in', Math.round(duration || this.DEFAULT_CACHE_DURATION) / 1000 / 60, 'minutes');
     } catch (error) {
       console.warn('Cache write error:', error);
@@ -101,7 +103,7 @@ export class ApiCacheManager {
     usage.requestsToday++;
     usage.lastRequestTime = now;
     
-    localStorage.setItem(this.USAGE_KEY, JSON.stringify(usage));
+    storage.setItem(this.USAGE_KEY, JSON.stringify(usage));
     
     console.log('📊 API Usage:', {
       requestsToday: usage.requestsToday,
@@ -113,7 +115,7 @@ export class ApiCacheManager {
   // Get current usage statistics
   static getUsageStats(): ApiUsageStats {
     try {
-      const stored = localStorage.getItem(this.USAGE_KEY);
+      const stored = storage.getItem(this.USAGE_KEY);
       if (stored) {
         const usage: ApiUsageStats = JSON.parse(stored);
         
@@ -158,17 +160,17 @@ export class ApiCacheManager {
     keys.forEach(key => {
       if (key.startsWith(this.CACHE_PREFIX)) {
         try {
-          const cached = localStorage.getItem(key);
+          const cached = storage.getItem(key);
           if (cached) {
             const item: CacheItem<any> = JSON.parse(cached);
             if (Date.now() > item.expiresAt) {
-              localStorage.removeItem(key);
+              storage.removeItem(key);
               cleared++;
             }
           }
         } catch (error) {
           // Remove corrupted cache entries
-          localStorage.removeItem(key);
+          storage.removeItem(key);
           cleared++;
         }
       }

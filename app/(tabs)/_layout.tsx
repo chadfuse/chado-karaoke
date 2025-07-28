@@ -37,23 +37,23 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="categories"
-        options={{
-          title: 'Categories',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="music.note.list" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="player"
+        options={{
+          title: 'Player',
+          tabBarIcon: ({ color }) => <PlayerTabIcon color={color} />,
+          headerShown: false, // Use custom header in component instead
+        }}
+      />
+    </Tabs>
+  );
+}
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
         }}
       />
