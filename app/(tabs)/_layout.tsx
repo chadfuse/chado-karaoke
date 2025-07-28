@@ -14,33 +14,34 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'dark'].tint,
-        headerShown: false, // Default to false, override per screen
+        headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-            backgroundColor: '#1a1a1a', // Dark tab bar background
-          },
-          default: {
-            backgroundColor: '#1a1a1a', // Dark tab bar background
-          },
-        }),
-      }}>
+        tabBarActiveTintColor: Colors[colorScheme].tint,
+        tabBarStyle: {
+          position: Platform.OS === 'ios' ? 'absolute' : 'relative',
+          backgroundColor: '#1a1a1a',
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="house.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="magnifyingglass" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -48,21 +49,7 @@ export default function TabLayout() {
         options={{
           title: 'Player',
           tabBarIcon: ({ color }) => <PlayerTabIcon color={color} />,
-          headerShown: false, // Use custom header in component instead
-        }}
-      />
-    </Tabs>
-  );
-}
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="magnifyingglass" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="player"
-        options={{
-          title: 'Player',
-          tabBarIcon: ({ color }) => <PlayerTabIcon color={color} />,
-          headerShown: false, // Use custom header in component instead
+          headerShown: false,
         }}
       />
     </Tabs>

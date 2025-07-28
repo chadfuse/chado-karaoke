@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#1a1a1a', // Dark background
+    height:300,
   },
   input: {
     height: 100,

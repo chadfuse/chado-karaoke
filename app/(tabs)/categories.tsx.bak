@@ -2,7 +2,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { GENRES } from '@/constants/config';
 import { mockSongs } from '@/constants/mockSongs';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { FlatList, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function CategoriesScreen() {
