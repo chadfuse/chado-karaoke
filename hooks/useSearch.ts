@@ -7,14 +7,25 @@ export function useSearch() {
   const [results, setResults] = useState<YouTubeSong[]>([]);
   const [loading, setLoading] = useState(false);
   const [trendingData, setTrendingData] = useState<YouTubeSong[]>([]);
-  const [apiUsage, setApiUsage] = useState(YouTubeService.getApiUsage());
+  const [apiUsage, setApiUsage] = useState(() => {
+    try {
+      return YouTubeService.getApiUsage();
+    } catch (error) {
+      console.warn('Failed to get API usage, using default:', error);
+      return { quotaUsed: 0, quotaLimit: 10000, resetTime: Date.now() + 24 * 60 * 60 * 1000 };
+    }
+  });
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load trending karaoke songs on mount
   useEffect(() => {
     loadTrendingKaraoke();
-    // Clear expired cache on app start
-    YouTubeService.clearCache();
+    // Clear expired cache on app start - wrap in try/catch for localStorage issues
+    try {
+      YouTubeService.clearCache();
+    } catch (error) {
+      console.warn('Failed to clear cache (localStorage issue):', error);
+    }
   }, []);
 
   const loadTrendingKaraoke = async () => {
@@ -31,8 +42,12 @@ export function useSearch() {
         setTrendingData(mockSongs);
       }
       
-      // Update API usage stats
-      setApiUsage(YouTubeService.getApiUsage());
+      // Update API usage stats - handle localStorage errors
+      try {
+        setApiUsage(YouTubeService.getApiUsage());
+      } catch (error) {
+        console.warn('Failed to update API usage stats:', error);
+      }
     } catch (error) {
       console.error('Failed to load trending karaoke:', error);
       setTrendingData(mockSongs);
@@ -84,8 +99,12 @@ export function useSearch() {
           console.log('📦 Mock data search results:', filteredMockSongs.length, 'songs found for query:', query);
         }
         
-        // Update API usage stats after search
-        setApiUsage(YouTubeService.getApiUsage());
+        // Update API usage stats after search - handle localStorage errors
+        try {
+          setApiUsage(YouTubeService.getApiUsage());
+        } catch (error) {
+          console.warn('Failed to update API usage stats after search:', error);
+        }
       } catch (error) {
         console.error('YouTube search failed, using mock data:', error);
         
@@ -117,6 +136,12 @@ export function useSearch() {
     data: query ? results : trendingData.length > 0 ? trendingData : mockSongs,
     refreshTrending: loadTrendingKaraoke,
     apiUsage,
-    clearCache: YouTubeService.clearAllCache
+    clearCache: () => {
+      try {
+        YouTubeService.clearAllCache();
+      } catch (error) {
+        console.warn('Failed to clear cache (localStorage issue):', error);
+      }
+    }
   };
 }

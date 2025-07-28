@@ -11,7 +11,7 @@ export default function SearchScreen() {
   const { addReservedSong, isReserved } = useReservedSongs();
   const router = useRouter();
 
-  const handleReserveSong = (song: any) => {
+  const handleReserveSong = async (song: any) => {
     const reservedSong = {
       id: song.id,
       title: song.title,
@@ -21,7 +21,7 @@ export default function SearchScreen() {
       thumbnail: song.thumbnail,
       channelTitle: song.channelTitle,
     };
-    addReservedSong(reservedSong);
+    await addReservedSong(reservedSong);
   };
 
   return (
@@ -157,4 +157,4 @@ const styles = StyleSheet.create({
     color: '#ffffff', // White text
     textTransform: 'uppercase',
   },
-}); 
+});

@@ -7,10 +7,12 @@ import React, { memo, useCallback, useLayoutEffect, useState } from 'react';
 import { Dimensions, Image, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
+import YoutubePlayer from 'react-native-youtube-iframe';
 
-// Memoized VideoPlayer to prevent re-renders when unrelated state changes
-const VideoPlayer = memo(({ url, width, height, videoId }: { url: string; width: number; height: number; videoId: string }) => {
+// Memoized VideoPlayer that uses different implementations based on platform
+const VideoPlayer = memo(({ videoId, width, height, onVideoEnd, isPlaying }: { videoId: string; width: number; height: number; onVideoEnd?: () => void; isPlaying: boolean }) => {
   const [hasError, setHasError] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   const openInYouTube = useCallback(() => {
     const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -19,100 +21,269 @@ const VideoPlayer = memo(({ url, width, height, videoId }: { url: string; width:
 
   if (hasError) {
     return (
-      <View style={{ width, height, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: 'white', fontSize: 16, marginBottom: 16, textAlign: 'center' }}>
-          Video not available for embedding
+      <View style={{ width, height, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ color: 'white', fontSize: 18, marginBottom: 12, textAlign: 'center', fontWeight: 'bold' }}>
+          🚫 Video Unavailable
+        </Text>
+        <Text style={{ color: '#ccc', fontSize: 14, marginBottom: 20, textAlign: 'center' }}>
+          This video cannot be played. It may be restricted, private, or removed.
         </Text>
         <TouchableOpacity
           onPress={openInYouTube}
           style={{
             backgroundColor: '#FF0000',
-            paddingHorizontal: 20,
-            paddingVertical: 10,
+            paddingHorizontal: 24,
+            paddingVertical: 12,
             borderRadius: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
           }}
         >
+          <Text style={{ color: 'white', fontWeight: 'bold', marginRight: 8 }}>📱</Text>
           <Text style={{ color: 'white', fontWeight: 'bold' }}>Open in YouTube</Text>
         </TouchableOpacity>
+        <Text style={{ color: '#888', fontSize: 12, marginTop: 12, textAlign: 'center' }}>
+          Tap to open in YouTube app
+        </Text>
       </View>
     );
   }
 
-  if (Platform.OS === 'web') {
+  // Use react-native-youtube-iframe for mobile platforms only
+  if ((Platform.OS === 'ios' || Platform.OS === 'android') && Platform.OS !== 'web') {
+    const handleStateChange = useCallback((state: string) => {
+      console.log('YouTube player state changed:', state);
+      if (state === 'ended') {
+        onVideoEnd?.();
+      }
+    }, [onVideoEnd]);
+
+    const handleError = useCallback((error: string) => {
+      console.error('YouTube player error:', error);
+      setHasError(true);
+    }, []);
+
     return (
-      <iframe
-        src={url}
-        style={{ width, height, border: 'none' }}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        title="Karaoke Video Player"
-        onError={() => setHasError(true)}
-      />
+      <View style={{ width, height, backgroundColor: '#000' }}>
+        {!isReady && (
+          <View style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backgroundColor: '#000',
+            zIndex: 1
+          }}>
+            <Text style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>🎵 Loading video...</Text>
+            <Text style={{ color: '#888', fontSize: 12 }}>Please wait</Text>
+          </View>
+        )}
+        <YoutubePlayer
+          height={height}
+          width={width}
+          videoId={videoId}
+          play={isPlaying}
+          onChangeState={handleStateChange}
+          onError={handleError}
+          onReady={() => {
+            console.log('YouTube player ready');
+            setIsReady(true);
+          }}
+          initialPlayerParams={{
+            cc_lang_pref: 'en',
+            showClosedCaptions: false,
+            preventFullScreen: false,
+            controls: true,
+            modestbranding: true,
+            rel: false,
+            showinfo: false,
+          }}
+          webViewStyle={{
+            backgroundColor: '#000',
+          }}
+          webViewProps={{
+            allowsFullscreenVideo: true,
+            allowsInlineMediaPlayback: true,
+          }}
+        />
+      </View>
     );
   }
+
+  // Use WebView/iframe for web and other platforms
+  const params = new URLSearchParams({
+    autoplay: isPlaying ? '1' : '0',
+    enablejsapi: '1',
+    playsinline: '1',
+    controls: '1',
+    rel: '0',
+    modestbranding: '1',
+    fs: '1',
+    cc_load_policy: '0',
+    iv_load_policy: '3',
+    autohide: '1',
+    start: '0',
+    widget_referrer: 'https://karaoke-app.com'
+  });
   
+  const url = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+
+  // Use iframe for web platform
+  if (Platform.OS === 'web') {
+    return (
+      <div style={{ width, height, backgroundColor: '#000' }}>
+        {!isReady && (
+          <div style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            display: 'flex',
+            justifyContent: 'center', 
+            alignItems: 'center',
+            backgroundColor: '#000',
+            zIndex: 1,
+            color: '#fff',
+            flexDirection: 'column'
+          }}>
+            <div style={{ fontSize: 16, marginBottom: 10 }}>🎵 Loading video...</div>
+            <div style={{ fontSize: 12, color: '#888' }}>Please wait</div>
+          </div>
+        )}
+        <iframe
+          src={url}
+          style={{ width, height, border: 'none' }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          title="Karaoke Video Player"
+          onError={() => setHasError(true)}
+          onLoad={() => setIsReady(true)}
+        />
+      </div>
+    );
+  }
+
+  // Fallback WebView for other platforms
   return (
-    <WebView
-      source={{ uri: url }}
-      style={{ width, height }}
-      allowsFullscreenVideo={true}
-      mediaPlaybackRequiresUserAction={false}
-      javaScriptEnabled={true}
-      domStorageEnabled={true}
-      startInLoadingState={true}
-      allowsInlineMediaPlayback={true}
-      bounces={false}
-      scrollEnabled={false}
-      showsHorizontalScrollIndicator={false}
-      showsVerticalScrollIndicator={false}
-      mixedContentMode="compatibility"
-      originWhitelist={['*']}
-      onError={(syntheticEvent) => {
-        const { nativeEvent } = syntheticEvent;
-        console.warn('WebView error: ', nativeEvent);
-        setHasError(true);
-      }}
-      onLoadEnd={() => {
-        console.log('Video loaded successfully');
-      }}
-      onHttpError={(syntheticEvent) => {
-        const { nativeEvent } = syntheticEvent;
-        console.warn('HTTP error: ', nativeEvent);
-        if (nativeEvent.statusCode >= 400) {
+    <View style={{ width, height, backgroundColor: '#000' }}>
+      {!isReady && (
+        <View style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          backgroundColor: '#000',
+          zIndex: 1
+        }}>
+          <Text style={{ color: '#fff', fontSize: 16, marginBottom: 10 }}>🎵 Loading video...</Text>
+          <Text style={{ color: '#888', fontSize: 12 }}>Please wait</Text>
+        </View>
+      )}
+      <WebView
+        source={{ uri: url }}
+        style={{ width, height }}
+        allowsFullscreenVideo={true}
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={false}
+        allowsInlineMediaPlayback={true}
+        bounces={false}
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        mixedContentMode="compatibility"
+        originWhitelist={['*']}
+        onError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('WebView error: ', nativeEvent);
           setHasError(true);
-        }
-      }}
-      injectedJavaScript={`
-        // Ensure video elements are properly configured for mobile
-        const videos = document.querySelectorAll('video');
-        videos.forEach(video => {
-          video.setAttribute('playsinline', 'true');
-          video.setAttribute('webkit-playsinline', 'true');
-          video.setAttribute('controls', 'true');
-        });
-        
-        // Check for YouTube error messages
-        setTimeout(() => {
-          const errorElements = document.querySelectorAll('.ytp-error, .ytp-error-content');
-          if (errorElements.length > 0) {
-            window.ReactNativeWebView.postMessage('error');
+          setIsReady(true);
+        }}
+        onLoadStart={() => {
+          setIsReady(false);
+          console.log('Video loading started');
+        }}
+        onLoadEnd={() => {
+          setIsReady(true);
+          console.log('Video loaded successfully');
+        }}
+        onHttpError={(syntheticEvent) => {
+          const { nativeEvent } = syntheticEvent;
+          console.warn('HTTP error: ', nativeEvent);
+          setIsReady(true);
+          if (nativeEvent.statusCode >= 400) {
+            setHasError(true);
           }
-        }, 3000);
-        
-        true; // Required for injected JS
-      `}
-      onMessage={(event) => {
-        if (event.nativeEvent.data === 'error') {
-          setHasError(true);
-        }
-      }}
-    />
+        }}
+        injectedJavaScript={`
+          // Monitor video progress and detect near end
+          let videoEndTimer = null;
+          
+          function checkVideoProgress() {
+            const video = document.querySelector('video');
+            if (video && video.duration && video.currentTime) {
+              const timeLeft = video.duration - video.currentTime;
+              
+              // If 2 seconds or less remaining, trigger next video
+              if (timeLeft <= 2 && timeLeft > 0 && !videoEndTimer) {
+                videoEndTimer = setTimeout(() => {
+                  window.ReactNativeWebView.postMessage('videoNearEnd');
+                  videoEndTimer = null;
+                }, (timeLeft - 0.5) * 1000);
+              }
+            }
+          }
+          
+          // Check progress every 500ms
+          setInterval(checkVideoProgress, 500);
+          
+          // Check for YouTube error messages
+          setTimeout(() => {
+            const errorElements = document.querySelectorAll('.ytp-error, .ytp-error-content');
+            if (errorElements.length > 0 || 
+                document.body.innerHTML.includes('Video unavailable') ||
+                document.body.innerHTML.includes('restricted from playback')) {
+              window.ReactNativeWebView.postMessage('error');
+            }
+          }, 5000);
+          
+          // Hide suggested videos at the end
+          const style = document.createElement('style');
+          style.textContent = \`
+            .ytp-endscreen-content,
+            .ytp-ce-element,
+            .ytp-cards-teaser,
+            .ytp-pause-overlay {
+              display: none !important;
+            }
+          \`;
+          document.head.appendChild(style);
+          
+          true;
+        `}
+        onMessage={(event) => {
+          if (event.nativeEvent.data === 'error') {
+            setHasError(true);
+          } else if (event.nativeEvent.data === 'videoNearEnd') {
+            onVideoEnd?.();
+          }
+        }}
+      />
+    </View>
   );
 });
 
 // Memoized section wrapper for video that only updates when videoId/size changes
 const VideoSection = memo(
-  ({ videoId, width, height, isPlaying }: { videoId?: string; width: number; height: number; isPlaying: boolean }) => {
+  ({ videoId, width, height, isPlaying, onVideoEnd }: { videoId?: string; width: number; height: number; isPlaying: boolean; onVideoEnd?: () => void }) => {
     if (!videoId) {
       return (
         <View style={{ flex: 1 }}>
@@ -123,28 +294,16 @@ const VideoSection = memo(
       );
     }
     
-    // Enhanced YouTube URL with mobile-friendly parameters
-    const params = new URLSearchParams({
-      autoplay: isPlaying ? '1' : '0',
-      enablejsapi: '1',
-      playsinline: '1',
-      controls: '1',
-      rel: '0',
-      modestbranding: '1',
-      fs: '1',
-      cc_load_policy: '0',
-      iv_load_policy: '3',
-      autohide: '1',
-      start: '0'
-    });
-    
-    // Remove origin parameter for better compatibility
-    const url = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
-    
     return (
       <View style={{ flex: 1 }}>
         <View style={{ width, height, backgroundColor: '#000' }}>
-          <VideoPlayer url={url} width={width} height={height} videoId={videoId} />
+          <VideoPlayer 
+            videoId={videoId} 
+            width={width} 
+            height={height} 
+            onVideoEnd={onVideoEnd}
+            isPlaying={isPlaying}
+          />
         </View>
       </View>
     );
@@ -215,7 +374,7 @@ export default function PlayerScreen() {
     setShowSearch(false);
   }, []);
 
-  const handleReserveSong = useCallback((song: any) => {
+  const handleReserveSong = useCallback(async (song: any) => {
     console.log('Reserved song:', song.title);
     const reservedSong = {
       id: song.id,
@@ -226,7 +385,7 @@ export default function PlayerScreen() {
       thumbnail: song.thumbnail,
       channelTitle: song.channelTitle,
     };
-    addReservedSong(reservedSong);
+    await addReservedSong(reservedSong);
     setSearchQuery('');
     setShowSearch(false);
   }, [addReservedSong]);
@@ -243,6 +402,16 @@ export default function PlayerScreen() {
     setIsPlaying(prev => !prev);
     setVideoKey(prev => prev + 1); // Force video remount
   }, []);
+
+  const handleVideoEnd = useCallback(() => {
+    console.log('Video ended, checking for next reserved song');
+    if (reservedSongs.length > 0) {
+      console.log('Auto-playing next reserved song');
+      setTimeout(() => {
+        handlePlayNextReserved();
+      }, 1000); // Add small delay before switching to next video
+    }
+  }, [reservedSongs.length, handlePlayNextReserved]);
 
   // Memoize header components to prevent unnecessary re-renders
   const headerTitle = useCallback(() => (
@@ -290,6 +459,10 @@ export default function PlayerScreen() {
     });
   }, [navigation]);
 
+  console.log('Platform detected:', Platform.OS, '- Using', 
+    Platform.OS === 'ios' || Platform.OS === 'android' ? 'react-native-youtube-iframe' : 
+    Platform.OS === 'web' ? 'iframe' : 'WebView');
+
   if (!currentSong) {
     return (
       <View style={styles.container}>
@@ -298,7 +471,7 @@ export default function PlayerScreen() {
     );
   }
 
-  const videoUrl = `https://www.youtube.com/embed/${currentSong.youtubeId}?autoplay=1`;
+  const videoUrl = `https://www.youtube.com/embed/${currentSong.youtubeId}?autoplay=1&modestbranding=1&rel=0&controls=1&fs=0&iv_load_policy=3`;
   const { width, height: screenHeight } = Dimensions.get('window');
   // Calculate video height accounting for custom header and tab bar
   const customHeaderHeight = Platform.OS === 'ios' ? 85 : 60; // Custom header height
@@ -409,6 +582,7 @@ export default function PlayerScreen() {
         width={videoWidth}
         height={videoHeight}
         isPlaying={isPlaying}
+        onVideoEnd={handleVideoEnd}
         key={`${currentSong.youtubeId}-${videoKey}`}
       />
     </View>
